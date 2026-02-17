@@ -3,10 +3,21 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import RubuCard from '@/components/RubuCard';
 import ReservationModal from '@/components/ReservationModal';
-import { BookOpen, Search, Filter, Loader2, Star } from 'lucide-react';
+import { BookOpen, Search, Loader2, Star } from 'lucide-react';
+
+// Type pour les données de la base de données
+interface RubuData {
+  id: string;
+  rubu_number: number;
+  status: 'disponible' | 'pris' | 'termine';
+  reader_name?: string;
+  reader_phone?: string;
+  completed_at?: string;
+  taken_at?: string;
+}
 
 export default function Home() {
-  const [rubus, setRubus] = useState<any[]>([]);
+  const [rubus, setRubus] = useState<RubuData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'tous' | 'disponible' | 'pris' | 'termine'>('tous');
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,17 +26,20 @@ export default function Home() {
 
   const fetchRubus = async () => {
     const { data } = await supabase.from('rubu_sections').select('*').order('rubu_number', { ascending: true });
-    if (data) setRubus(data);
+    if (data) setRubus(data as RubuData[]);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchRubus();
-    const channel = supabase.channel('realtime-kamil').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rubu_sections' }, 
-      (payload) => {
-        const updated = payload.new as any;
-        setRubus(current => current.map(r => r.id === updated.id ? updated : r));
-      }).subscribe();
+    const channel = supabase.channel('realtime-kamil').on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'rubu_sections' 
+    }, (payload) => {
+      const updated = payload.new as RubuData;
+      setRubus(current => current.map(r => r.id === updated.id ? updated : r));
+    }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
 
@@ -49,11 +63,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#FDFDFD] text-slate-900">
-      {/* Header Sticky avec flou */}
       <header className="bg-white/70 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-[60] px-6 py-5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-4">
-            <div className="bg-emerald-600 p-3 rounded-[1.25rem] shadow-xl shadow-emerald-200 animate-pulse-slow">
+            <div className="bg-emerald-600 p-3 rounded-[1.25rem] shadow-xl shadow-emerald-200">
               <BookOpen className="text-white" size={28} />
             </div>
             <div>
@@ -78,7 +91,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Barre de recherche et filtres */}
       <div className="max-w-7xl mx-auto px-6 mt-10 space-y-8">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="relative flex-1 group">
@@ -105,7 +117,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Grille Responsive */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-5 pb-20">
           {filteredRubus.map((rubu) => (
             <RubuCard 
@@ -124,9 +135,16 @@ export default function Home() {
         isOpen={isModalOpen} 
         rubuNumber={selectedRubu} 
         onClose={() => setIsModalOpen(false)} 
-        onConfirm={async (name, phone) => {
-          await supabase.from('rubu_sections').update({ status: 'pris', reader_name: name, reader_phone: phone, taken_at: new Date().toISOString() }).eq('rubu_number', selectedRubu);
-          setIsModalOpen(false);
+        onConfirm={async (name: string, phone: string) => {
+          if (selectedRubu) {
+            await supabase.from('rubu_sections').update({ 
+              status: 'pris', 
+              reader_name: name, 
+              reader_phone: phone, 
+              taken_at: new Date().toISOString() 
+            }).eq('rubu_number', selectedRubu);
+            setIsModalOpen(false);
+          }
         }} 
       />
     </main>
