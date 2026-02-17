@@ -1,92 +1,85 @@
 "use client";
-
 import { motion } from "framer-motion";
-import { CheckCircle, Clock, ExternalLink, User } from "lucide-react";
+import { CheckCircle2, Clock, User, ChevronRight } from "lucide-react";
 
-// MISE À JOUR DE L'INTERFACE : On ajoute onComplete ici
 interface RubuProps {
   data: {
     rubu_number: number;
-    status: 'disponible' | 'pris' | 'en_cours' | 'termine';
+    status: 'disponible' | 'pris' | 'termine';
     reader_name?: string;
-    pdf_url?: string;
-    content_label?: string;
   };
   onSelect: (num: number) => void;
-  onComplete: () => void; // <--- C'est cette ligne qui manquait
+  onComplete: () => void;
 }
 
 export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
-  
-  // Styles dynamiques selon le statut
-  const styles = {
-    disponible: "bg-white border-gray-200 hover:border-emerald-400 hover:shadow-md",
-    pris: "bg-amber-50 border-amber-200 shadow-sm",
-    termine: "bg-emerald-50 border-emerald-200 opacity-80",
-  };
+  const isAvailable = data.status === 'disponible';
+  const isTaken = data.status === 'pris';
+  const isDone = data.status === 'termine';
 
   return (
     <motion.div
-      whileHover={{ y: -2 }}
-      className={`relative p-3 border-2 rounded-2xl transition-all flex flex-col justify-between min-h-[140px] cursor-pointer ${
-        data.status === 'termine' ? styles.termine : 
-        data.status === 'disponible' ? styles.disponible : styles.pris
+      layout
+      whileHover={{ y: -5, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`relative group p-4 rounded-[2rem] border-2 transition-all duration-300 flex flex-col justify-between min-h-[160px] cursor-pointer shadow-sm ${
+        isDone ? 'bg-emerald-50/50 border-emerald-100 shadow-emerald-100/20' : 
+        isTaken ? 'bg-amber-50/50 border-amber-100 shadow-amber-100/20' : 
+        'bg-white border-slate-100 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10'
       }`}
-      onClick={() => data.status === 'disponible' && onSelect(data.rubu_number)}
+      onClick={() => isAvailable && onSelect(data.rubu_number)}
     >
-      {/* Badge Numéro */}
+      {/* Header de la carte */}
       <div className="flex justify-between items-start">
-        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
-          data.status === 'termine' ? 'bg-emerald-200 text-emerald-800' : 
-          data.status === 'pris' ? 'bg-amber-200 text-amber-800' : 'bg-gray-100 text-gray-500'
+        <div className={`text-[13px] font-black w-10 h-10 flex items-center justify-center rounded-2xl shadow-inner ${
+          isDone ? 'bg-emerald-600 text-white' : 
+          isTaken ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'
         }`}>
-          RUBU {data.rubu_number}
-        </span>
+          {data.rubu_number}
+        </div>
         
-        {data.status === 'termine' && <CheckCircle size={18} className="text-emerald-600" />}
-        {data.status === 'pris' && <Clock size={18} className="text-amber-600 animate-pulse" />}
-      </div>
-
-      {/* Contenu Central */}
-      <div className="my-2">
-        {data.status === 'disponible' ? (
-          <p className="text-gray-400 text-[10px] font-medium italic uppercase">Libre</p>
-        ) : (
-          <div className="flex items-center gap-1 text-gray-700">
-            <User size={10} className="shrink-0" />
-            <span className="text-[11px] font-bold truncate">{data.reader_name}</span>
+        {isDone && <CheckCircle2 size={20} className="text-emerald-600" />}
+        {isTaken && (
+          <div className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
           </div>
         )}
-        <p className="text-[10px] text-gray-500 mt-1 line-clamp-1">
-          {data.content_label || `Section ${data.rubu_number}`}
-        </p>
       </div>
 
-      {/* Actions */}
-      <div className="mt-2 space-y-1.5">
-        {data.pdf_url && data.status !== 'disponible' && (
-          <a
-            href={data.pdf_url}
-            target="_blank"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center gap-1 w-full bg-white border border-gray-200 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 transition-colors"
-          >
-            <ExternalLink size={10} /> LIRE LE PDF
-          </a>
-        )}
-
-        {data.status === 'pris' && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onComplete(); // Appelle la fonction de validation automatique
-            }}
-            className="w-full bg-emerald-600 text-white text-[10px] font-black py-2 rounded-lg hover:bg-emerald-700 active:scale-95 transition-all shadow-md"
-          >
-            VALIDER
-          </button>
+      {/* Corps de la carte */}
+      <div className="mt-4 flex-grow">
+        {isAvailable ? (
+          <div className="flex items-center gap-1 text-slate-300">
+            <span className="text-[10px] font-black uppercase tracking-widest italic">Libre</span>
+            <ChevronRight size={10} />
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-white rounded-lg shadow-sm">
+                <User size={12} className="text-slate-400" />
+              </div>
+              <p className="text-[11px] font-black text-slate-800 truncate leading-tight uppercase tracking-tight">
+                {data.reader_name}
+              </p>
+            </div>
+            <p className="text-[9px] text-slate-400 font-bold uppercase pl-7">Lecteur</p>
+          </div>
         )}
       </div>
+
+      {/* Action rapide */}
+      {isTaken && (
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={(e) => { e.stopPropagation(); onComplete(); }}
+          className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-200 uppercase tracking-widest"
+        >
+          Valider ma lecture
+        </motion.button>
+      )}
     </motion.div>
   );
 }
