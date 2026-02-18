@@ -1,8 +1,17 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShieldCheck, BarChart3, Phone, User, LogOut, XCircle, Trash2, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { 
+  ShieldCheck, 
+  BarChart3, 
+  Phone, 
+  LogOut, 
+  XCircle, 
+  TrendingUp, 
+  Clock, 
+  CheckCircle2,
+  RotateCcw // Nouvel icône pour la réinitialisation
+} from 'lucide-react';
 
 export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -22,6 +31,31 @@ export default function AdminPage() {
         termine: data.filter(r => r.status === 'termine').length
       });
       setDetails(data.filter(r => r.status !== 'disponible'));
+    }
+  };
+
+  // Fonction de réinitialisation complète
+  const handleResetAll = async () => {
+    const confirmReset = confirm("ÊTES-VOUS SÛR ? Cette action va libérer TOUS les Rubus et effacer toutes les données des lecteurs.");
+    
+    if (confirmReset) {
+      const { error } = await supabase
+        .from('rubu_sections')
+        .update({ 
+          status: 'disponible', 
+          reader_name: null, 
+          reader_phone: null,
+          taken_at: null,
+          completed_at: null 
+        })
+        .neq('status', 'disponible'); // On n'update que ceux qui ne sont pas déjà libres
+
+      if (!error) {
+        alert("Réinitialisation terminée avec succès.");
+        fetchData();
+      } else {
+        alert("Erreur lors de la réinitialisation.");
+      }
     }
   };
 
@@ -65,15 +99,26 @@ export default function AdminPage() {
               <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Kamil Management System</p>
             </div>
           </div>
-          <button 
-            onClick={() => { localStorage.removeItem('admin_auth'); setIsAdmin(false); }} 
-            className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-red-500 font-black text-xs flex items-center gap-2 hover:bg-red-50 transition-all shadow-sm"
-          >
-            <LogOut size={16} /> QUITTER LA SESSION
-          </button>
+          
+          <div className="flex items-center gap-3">
+            {/* Bouton de Réinitialisation */}
+            <button 
+              onClick={handleResetAll}
+              className="px-6 py-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-600 font-black text-xs flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm"
+            >
+              <RotateCcw size={16} /> RÉINITIALISER TOUT
+            </button>
+
+            <button 
+              onClick={() => { localStorage.removeItem('admin_auth'); setIsAdmin(false); }} 
+              className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-red-500 font-black text-xs flex items-center gap-2 hover:bg-red-50 transition-all shadow-sm"
+            >
+              <LogOut size={16} /> QUITTER
+            </button>
+          </div>
         </div>
 
-        {/* Stats Cards avec courbe d'évolution */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <StatCard label="En cours de lecture" val={stats.pris} color="amber" icon={<Clock size={20}/>} />
           <StatCard label="Rubu complétés" val={stats.termine} color="emerald" icon={<CheckCircle2 size={20}/>} />
@@ -112,7 +157,7 @@ export default function AdminPage() {
                     <td className="px-10 py-6"><span className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-800">#{item.rubu_number}</span></td>
                     <td className="px-10 py-6">
                       <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase ${item.status === 'termine' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {item.status}
+                        {item.status === 'termine' ? 'terminé' : 'en cours'}
                       </span>
                     </td>
                     <td className="px-10 py-6 font-bold text-slate-700 tracking-tight">{item.reader_name}</td>
