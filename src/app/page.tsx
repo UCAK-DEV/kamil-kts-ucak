@@ -5,7 +5,6 @@ import RubuCard from '@/components/RubuCard';
 import ReservationModal from '@/components/ReservationModal';
 import { BookOpen, Search, Loader2, Star } from 'lucide-react';
 
-// Type pour les données de la base de données
 interface RubuData {
   id: string;
   rubu_number: number;
@@ -23,14 +22,15 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRubu, setSelectedRubu] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const fetchRubus = async () => {
-    const { data } = await supabase.from('rubu_sections').select('*').order('rubu_number', { ascending: true });
-    if (data) setRubus(data as RubuData[]);
-    setLoading(false);
-  };
+  
+  // État pour suivre les rubus réservés sur cet appareil
+  const [myReservations, setMyReservations] = useState<number[]>([]);
 
   useEffect(() => {
+    // Charger les réservations locales au démarrage
+    const stored = JSON.parse(localStorage.getItem('my_rubus') || '[]');
+    setMyReservations(stored);
+
     fetchRubus();
     const channel = supabase.channel('realtime-kamil').on('postgres_changes', { 
       event: 'UPDATE', 
@@ -42,6 +42,12 @@ export default function Home() {
     }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const fetchRubus = async () => {
+    const { data } = await supabase.from('rubu_sections').select('*').order('rubu_number', { ascending: true });
+    if (data) setRubus(data as RubuData[]);
+    setLoading(false);
+  };
 
   const filteredRubus = useMemo(() => {
     return rubus.filter(r => {
@@ -122,9 +128,19 @@ export default function Home() {
             <RubuCard 
               key={rubu.rubu_number} 
               data={rubu} 
+              canComplete={myReservations.includes(rubu.rubu_number)}
               onSelect={(num) => { setSelectedRubu(num); setIsModalOpen(true); }} 
               onComplete={async () => {
-                await supabase.from('rubu_sections').update({ status: 'termine', completed_at: new Date().toISOString() }).eq('rubu_number', rubu.rubu_number);
+                const { error } = await supabase.from('rubu_sections')
+                  .update({ status: 'termine', completed_at: new Date().toISOString() })
+                  .eq('rubu_number', rubu.rubu_number);
+                
+                if (!error) {
+                  // Retirer du stockage local après validation
+                  const updated = myReservations.filter(id => id !== rubu.rubu_number);
+                  setMyReservations(updated);
+                  localStorage.setItem('my_rubus', JSON.stringify(updated));
+                }
               }} 
             />
           ))}
@@ -137,13 +153,20 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)} 
         onConfirm={async (name: string, phone: string) => {
           if (selectedRubu) {
-            await supabase.from('rubu_sections').update({ 
+            const { error } = await supabase.from('rubu_sections').update({ 
               status: 'pris', 
               reader_name: name, 
               reader_phone: phone, 
               taken_at: new Date().toISOString() 
             }).eq('rubu_number', selectedRubu);
-            setIsModalOpen(false);
+            
+            if (!error) {
+              // Enregistrer le numéro du rubu localement
+              const updated = [...myReservations, selectedRubu];
+              setMyReservations(updated);
+              localStorage.setItem('my_rubus', JSON.stringify(updated));
+              setIsModalOpen(false);
+            }
           }
         }} 
       />

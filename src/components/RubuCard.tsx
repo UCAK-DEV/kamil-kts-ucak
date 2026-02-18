@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { CheckCircle2, Clock, User, ChevronRight } from "lucide-react";
+import { CheckCircle2, User, ChevronRight } from "lucide-react";
 
 interface RubuProps {
   data: {
@@ -10,9 +10,10 @@ interface RubuProps {
   };
   onSelect: (num: number) => void;
   onComplete: () => void;
+  canComplete: boolean; // Ajout de la prop pour la restriction
 }
 
-export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
+export default function RubuCard({ data, onSelect, onComplete, canComplete }: RubuProps) {
   const isAvailable = data.status === 'disponible';
   const isTaken = data.status === 'pris';
   const isDone = data.status === 'termine';
@@ -29,7 +30,6 @@ export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
       }`}
       onClick={() => isAvailable && onSelect(data.rubu_number)}
     >
-      {/* Header de la carte */}
       <div className="flex justify-between items-start">
         <div className={`text-[13px] font-black w-10 h-10 flex items-center justify-center rounded-2xl shadow-inner ${
           isDone ? 'bg-emerald-600 text-white' : 
@@ -47,7 +47,6 @@ export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
         )}
       </div>
 
-      {/* Corps de la carte */}
       <div className="mt-4 flex-grow">
         {isAvailable ? (
           <div className="flex items-center gap-1 text-slate-300">
@@ -69,8 +68,8 @@ export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
         )}
       </div>
 
-      {/* Action rapide */}
-      {isTaken && (
+      {/* Le bouton ne s'affiche que si l'appareil est celui qui a réservé */}
+      {isTaken && canComplete && (
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,6 +78,13 @@ export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
         >
           Valider ma lecture
         </motion.button>
+      )}
+
+      {/* Message informatif pour les autres utilisateurs */}
+      {isTaken && !canComplete && (
+        <div className="mt-3 w-full py-3 text-center text-[9px] font-bold text-slate-400 uppercase italic">
+          En cours...
+        </div>
       )}
     </motion.div>
   );
