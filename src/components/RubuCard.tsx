@@ -12,10 +12,9 @@ interface RubuProps {
   };
   onSelect: (num: number) => void;
   onComplete: () => void;
-  canComplete: boolean;
 }
 
-export default function RubuCard({ data, onSelect, onComplete, canComplete }: RubuProps) {
+export default function RubuCard({ data, onSelect, onComplete }: RubuProps) {
   const isAvailable = data.status === 'disponible';
   const isTaken = data.status === 'pris';
   const isDone = data.status === 'termine';
@@ -24,18 +23,16 @@ export default function RubuCard({ data, onSelect, onComplete, canComplete }: Ru
     <motion.div
       layout
       whileHover={{ y: -4, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
       className={`relative p-5 rounded-[2.5rem] border-2 transition-all flex flex-col justify-between min-h-[220px] cursor-pointer shadow-sm ${
         isDone ? 'bg-emerald-50/40 border-emerald-200' : 
         isTaken ? 'bg-amber-50/40 border-amber-200' : 
-        'bg-white border-slate-100 hover:border-emerald-300 hover:shadow-md'
+        'bg-white border-slate-100 hover:border-emerald-300'
       }`}
       onClick={() => isAvailable && onSelect(data.rubu_number)}
     >
-      {/* Badge Juz' et Numéro */}
       <div className="flex justify-between items-start mb-2">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-700 bg-emerald-100/50 px-2.5 py-1 rounded-full border border-emerald-200 uppercase tracking-tighter">
+          <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-700 bg-emerald-100/50 px-2.5 py-1 rounded-full border border-emerald-200 uppercase">
             <LayoutGrid size={10} />
             <span>Juz' {data.juz_number}</span>
           </div>
@@ -49,45 +46,31 @@ export default function RubuCard({ data, onSelect, onComplete, canComplete }: Ru
         {isDone && <CheckCircle2 size={20} className="text-emerald-600" />}
       </div>
 
-      {/* Texte du Rubu en Arabe - Optimisé pour la lisibilité */}
       <div className="flex-grow flex items-center justify-center py-4 px-1">
-        <p 
-          className="text-xl md:text-2xl font-medium text-slate-800 text-center leading-[1.8]" 
-          style={{ 
-            fontFamily: "'Traditional Arabic', 'Amiri', serif",
-            textShadow: "0px 0px 1px rgba(0,0,0,0.05)"
-          }}
-          dir="rtl"
-        >
+        <p className="text-xl md:text-2xl font-medium text-slate-800 text-center leading-[1.8]" 
+           style={{ fontFamily: "'Amiri', serif" }} dir="rtl">
           {data.arabic_text}
         </p>
       </div>
 
-      {/* Footer : Lecteur ou Statut */}
       <div className="mt-2">
-        {isAvailable ? (
-          <div className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] text-center italic opacity-60">
-            Libre
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 bg-white/80 p-2 rounded-2xl border border-slate-50 shadow-sm">
-            <div className="p-1 bg-slate-100 rounded-lg">
-              <User size={10} className="text-slate-500" />
-            </div>
-            <p className="text-[10px] font-black text-slate-700 truncate uppercase tracking-tight">
-              {data.reader_name}
-            </p>
+        {!isAvailable && (
+          <div className="flex items-center gap-2 bg-white/80 p-2 rounded-2xl border border-slate-50 mb-2">
+            <User size={10} className="text-slate-500" />
+            <p className="text-[10px] font-black text-slate-700 truncate uppercase">{data.reader_name}</p>
           </div>
         )}
 
-        {isTaken && canComplete && (
+        {isTaken ? (
           <button
             onClick={(e) => { e.stopPropagation(); onComplete(); }}
-            className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-100 uppercase tracking-widest"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black py-3 rounded-xl transition-all shadow-md uppercase"
           >
-            Valider ma lecture
+            Valider la lecture
           </button>
-        )}
+        ) : isAvailable ? (
+          <div className="text-[9px] font-black text-emerald-500 uppercase text-center italic opacity-60">Libre</div>
+        ) : null}
       </div>
     </motion.div>
   );
